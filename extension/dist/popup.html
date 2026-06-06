@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MoodMemory</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <div class="popup__brand">
+        <div class="popup__logo">M</div>
+        <div>
+          <h1>MoodMemory</h1>
+          <p>Visual memory for the web</p>
+        </div>
+      </div>
+
+      <div id="status" class="popup__status">Checking connection...</div>
+
+      <button id="connect" class="popup__button" type="button">
+        Connect account
+      </button>
+
+      <p class="popup__hint">
+        Sign in on MoodMemory, then visit Settings → Extension to connect.
+      </p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

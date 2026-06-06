@@ -1,0 +1,77 @@
+.moodmemory-wrapper {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+}
+
+.moodmemory-wrapper:hover .moodmemory-save-button {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.moodmemory-save-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2147483646;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(15, 15, 15, 0.88);
+  color: #fff;
+  font:
+    500 12px/1 system-ui,
+    -apple-system,
+    sans-serif;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.moodmemory-save-button:hover {
+  background: rgba(15, 15, 15, 1);
+}
+
+.moodmemory-save-button:disabled {
+  opacity: 0.72;
+  cursor: wait;
+}
+
+.moodmemory-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483647;
+  max-width: 280px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(15, 15, 15, 0.92);
+  color: #fff;
+  font:
+    500 13px/1.4 system-ui,
+    -apple-system,
+    sans-serif;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.moodmemory-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.moodmemory-toast--error {
+  background: rgba(127, 29, 29, 0.94);
+}
