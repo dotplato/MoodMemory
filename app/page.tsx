@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
-import { ThemeSwitcher } from "@/components/theme-switcher"
 
 export default async function HomePage() {
   const session = await auth()
@@ -15,12 +14,9 @@ export default async function HomePage() {
           </div>
           <span className="text-sm font-medium">MoodMemory</span>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeSwitcher />
-          <Button render={<Link href={session ? "/dashboard" : "/login"} />}>
-            {session ? "Open library" : "Get started"}
-          </Button>
-        </div>
+        <Button render={<Link href={session ? "/dashboard" : "/login"} />}>
+          {session ? "Open library" : "Get started"}
+        </Button>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-16">

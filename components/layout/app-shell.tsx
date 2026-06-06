@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Sidebar } from "@/components/layout/sidebar"
-import { Navbar } from "@/components/layout/navbar"
+import { AppHeader } from "@/components/layout/app-header"
 import { CommandPalette } from "@/components/command-palette"
+import { NavigationProgress } from "@/components/layout/navigation-progress"
+import { ExtensionSyncProvider } from "@/components/providers/extension-sync-provider"
+import { LibrarySearchProvider } from "@/components/providers/library-search-provider"
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -12,13 +14,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useKeyboardShortcut("k", () => setCommandOpen(true), { meta: true })
 
   return (
-    <div className="flex h-svh overflow-hidden bg-background">
-      <Sidebar onOpenCommand={() => setCommandOpen(true)} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Navbar />
-        <main className="flex-1 overflow-auto">{children}</main>
-      </div>
-      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
-    </div>
+    <LibrarySearchProvider>
+      <ExtensionSyncProvider>
+        <div className="flex h-svh flex-col overflow-hidden bg-background">
+          <NavigationProgress />
+          <AppHeader onOpenCommand={() => setCommandOpen(true)} />
+          <main className="relative flex-1 overflow-auto">{children}</main>
+          <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+        </div>
+      </ExtensionSyncProvider>
+    </LibrarySearchProvider>
   )
 }

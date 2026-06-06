@@ -7,7 +7,9 @@ import type { Collection } from "@/lib/types/collection"
 import { createCollectionAction } from "@/lib/actions"
 import { CollectionCard } from "@/components/dashboard/collection-card"
 import { EmptyState } from "@/components/dashboard/empty-states"
+import { LoadingOverlay } from "@/components/ui/loading-overlay"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 import {
   Dialog,
@@ -18,7 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { toast } from "@/components/ui/sonner"
+import { showProgressToast } from "@/lib/progress-toast"
 
 interface CollectionsClientProps {
   collections: Collection[]
@@ -33,21 +35,25 @@ export function CollectionsClient({ collections }: CollectionsClientProps) {
   function handleCreate() {
     if (!name.trim()) return
 
+    const progress = showProgressToast("Creating collection...")
+
     startTransition(async () => {
       try {
+        progress.update(58, "Saving to Google Drive...")
         const collection = await createCollectionAction({ name: name.trim() })
-        toast.success(`Collection "${collection.name}" created`)
+        progress.complete(`Collection "${collection.name}" created`)
         setOpen(false)
         setName("")
         router.refresh()
       } catch {
-        toast.error("Failed to create collection")
+        progress.error("Failed to create collection")
       }
     })
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
+    <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6">
+      <LoadingOverlay show={isPending} label="Creating collection..." />
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-lg font-medium">Collections</h1>
@@ -81,7 +87,14 @@ export function CollectionsClient({ collections }: CollectionsClientProps) {
             />
             <DialogFooter>
               <Button onClick={handleCreate} disabled={isPending}>
-                Create collection
+                {isPending ? (
+                  <>
+                    <Spinner data-icon="inline-start" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create collection"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

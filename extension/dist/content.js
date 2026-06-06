@@ -55,6 +55,105 @@ function getPageMeta() {
     pageTitle: document.title || "Untitled"
   };
 }
+var progressToastEl = null;
+var progressInterval = null;
+var currentProgress = 0;
+var dismissTimeout = null;
+function stopFakeProgress() {
+  if (progressInterval) {
+    window.clearInterval(progressInterval);
+    progressInterval = null;
+  }
+}
+function clearDismissTimeout() {
+  if (dismissTimeout) {
+    window.clearTimeout(dismissTimeout);
+    dismissTimeout = null;
+  }
+}
+function setProgressBar(progress) {
+  const bar = progressToastEl?.querySelector(
+    ".moodmemory-toast__bar"
+  );
+  if (bar) {
+    bar.style.width = `${Math.min(Math.max(progress, 0), 100)}%`;
+  }
+}
+function setProgressMessage(message) {
+  const messageEl = progressToastEl?.querySelector(
+    ".moodmemory-toast__message"
+  );
+  if (messageEl) {
+    messageEl.textContent = message;
+  }
+}
+function dismissProgressToast(delay = 0) {
+  clearDismissTimeout();
+  dismissTimeout = window.setTimeout(() => {
+    progressToastEl?.classList.remove("is-visible");
+    window.setTimeout(() => {
+      progressToastEl?.remove();
+      progressToastEl = null;
+    }, 220);
+  }, delay);
+}
+function showProgressToast(message, progress = 4) {
+  stopFakeProgress();
+  clearDismissTimeout();
+  progressToastEl?.remove();
+  progressToastEl = document.createElement("div");
+  progressToastEl.className = `${TOAST_CLASS} ${TOAST_CLASS}--progress`;
+  progressToastEl.innerHTML = `
+    <div class="moodmemory-toast__message"></div>
+    <div class="moodmemory-toast__track">
+      <div class="moodmemory-toast__bar"></div>
+    </div>
+  `;
+  document.body.appendChild(progressToastEl);
+  currentProgress = progress;
+  setProgressMessage(message);
+  setProgressBar(progress);
+  requestAnimationFrame(() => progressToastEl?.classList.add("is-visible"));
+  progressInterval = window.setInterval(() => {
+    if (currentProgress < 88) {
+      currentProgress = Math.min(currentProgress + Math.random() * 7 + 2, 88);
+      setProgressBar(currentProgress);
+    }
+  }, 180);
+}
+function updateProgressToast(progress, message) {
+  if (!progressToastEl) {
+    showProgressToast(message ?? "Saving to MoodMemory...", progress);
+    return;
+  }
+  currentProgress = Math.max(currentProgress, progress);
+  setProgressBar(currentProgress);
+  if (message) {
+    setProgressMessage(message);
+  }
+}
+function completeProgressToast(message) {
+  stopFakeProgress();
+  currentProgress = 100;
+  setProgressBar(100);
+  setProgressMessage(message);
+  progressToastEl?.classList.add(`${TOAST_CLASS}--success`);
+  dismissProgressToast(1800);
+}
+function showErrorToast(message) {
+  stopFakeProgress();
+  progressToastEl?.remove();
+  progressToastEl = null;
+  const toast = document.createElement("div");
+  toast.className = `${TOAST_CLASS} ${TOAST_CLASS}--error`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("is-visible"));
+  window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+    window.setTimeout(() => toast.remove(), 220);
+  }, 3200);
+}
 function createSaveButton(img) {
   if (img.dataset.moodmemoryBound === "true") return;
   if (img.width < 80 || img.height < 80) return;
@@ -78,12 +177,15 @@ function createSaveButton(img) {
   button.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
+    showProgressToast("Saving to MoodMemory...", 4);
     button.disabled = true;
     button.textContent = "Saving...";
     const imageUrl = getBestImageUrl(img);
     const meta = getPageMeta();
     try {
+      updateProgressToast(18, "Reading image...");
       const captured = await captureImageFromUrl(imageUrl);
+      updateProgressToast(36, "Uploading to MoodMemory...");
       chrome.runtime.sendMessage(
         {
           type: "MOODMEMORY_SAVE",
@@ -95,14 +197,24 @@ function createSaveButton(img) {
             mimeType: captured.mimeType
           }
         },
-        () => {
+        (response) => {
           button.disabled = false;
           button.textContent = "Save";
+          if (chrome.runtime.lastError) {
+            showErrorToast(chrome.runtime.lastError.message ?? "Failed to save");
+            return;
+          }
+          if (!response?.success) {
+            showErrorToast(response?.error ?? "Failed to save image");
+          }
         }
       );
-    } catch {
+    } catch (error) {
       button.disabled = false;
       button.textContent = "Save";
+      showErrorToast(
+        error instanceof Error ? error.message : "Failed to save image"
+      );
     }
   });
 }
@@ -112,19 +224,6 @@ function bindImages(root = document.body) {
       createSaveButton(node);
     }
   });
-}
-function showToast(message, type = "success") {
-  const existing = document.querySelector(`.${TOAST_CLASS}`);
-  existing?.remove();
-  const toast = document.createElement("div");
-  toast.className = `${TOAST_CLASS} ${TOAST_CLASS}--${type}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  requestAnimationFrame(() => toast.classList.add("is-visible"));
-  window.setTimeout(() => {
-    toast.classList.remove("is-visible");
-    window.setTimeout(() => toast.remove(), 200);
-  }, 2400);
 }
 var observer = new MutationObserver((mutations) => {
   for (const mutation of mutations) {
@@ -149,7 +248,51 @@ window.addEventListener("message", (event) => {
   });
 });
 chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === "MOODMEMORY_PROGRESS") {
+    void handleProgressMessage(message);
+    return;
+  }
   if (message.type === "MOODMEMORY_TOAST") {
-    showToast(message.message, message.toastType);
+    if (message.toastType === "error") {
+      showErrorToast(message.message);
+      return;
+    }
+    completeProgressToast(message.message);
   }
 });
+async function handleProgressMessage(message) {
+  const storage = await new Promise((resolve) => {
+    chrome.storage.local.get(["apiUrl"], (result) => resolve(result));
+  });
+  const appOrigin = storage.apiUrl ? new URL(storage.apiUrl).origin : null;
+  if (appOrigin === window.location.origin) {
+    window.postMessage(
+      {
+        type: "MOODMEMORY_EXTENSION_PROGRESS",
+        state: message.state,
+        progress: message.progress,
+        message: message.message
+      },
+      window.location.origin
+    );
+    return;
+  }
+  if (message.state === "start") {
+    showProgressToast(
+      message.message ?? "Saving to MoodMemory...",
+      message.progress ?? 4
+    );
+    return;
+  }
+  if (message.state === "update") {
+    updateProgressToast(message.progress ?? currentProgress, message.message);
+    return;
+  }
+  if (message.state === "complete") {
+    completeProgressToast(message.message ?? "Saved to MoodMemory");
+    return;
+  }
+  if (message.state === "error") {
+    showErrorToast(message.message ?? "Failed to save image");
+  }
+}

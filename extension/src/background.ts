@@ -1,4 +1,7 @@
-import { captureImageFromUrl, saveToMoodMemory, showToast } from "./shared"
+import {
+  notifySaveProgress,
+  saveToMoodMemoryWithProgress,
+} from "./shared"
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -13,7 +16,19 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     return
   }
 
+  notifySaveProgress(tab.id, {
+    state: "start",
+    progress: 6,
+    message: "Saving to MoodMemory...",
+  })
+
   try {
+    notifySaveProgress(tab.id, {
+      state: "update",
+      progress: 18,
+      message: "Reading image...",
+    })
+
     const [result] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: async (imageUrl: string) => {
@@ -48,34 +63,38 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       throw new Error("Could not read image data from the page")
     }
 
-    await saveToMoodMemory({
-      imageUrl: info.srcUrl,
-      pageUrl: tab.url ?? info.srcUrl,
-      pageTitle: tab.title ?? "Untitled",
-      imageDataBase64: captured.imageDataBase64,
-      mimeType: captured.mimeType,
-    })
-    showToast("Saved to MoodMemory")
+    await saveToMoodMemoryWithProgress(
+      {
+        imageUrl: info.srcUrl,
+        pageUrl: tab.url ?? info.srcUrl,
+        pageTitle: tab.title ?? "Untitled",
+        imageDataBase64: captured.imageDataBase64,
+        mimeType: captured.mimeType,
+      },
+      (payload) => notifySaveProgress(tab.id, payload)
+    )
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to save image"
-    showToast(message, "error")
+    notifySaveProgress(tab.id, { state: "error", message })
   }
 })
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "MOODMEMORY_SAVE") {
-    void saveToMoodMemory(message.payload)
-      .then(() => {
-        showToast("Saved to MoodMemory")
-        sendResponse({ success: true })
-      })
+    const tabId = sender.tab?.id
+
+    void saveToMoodMemoryWithProgress(message.payload, (payload) => {
+      notifySaveProgress(tabId, payload)
+    })
+      .then(() => sendResponse({ success: true }))
       .catch((error) => {
-        const errorMessage =
-          error instanceof Error ? error.message : "Failed to save image"
-        showToast(errorMessage, "error")
-        sendResponse({ success: false, error: errorMessage })
+        sendResponse({
+          success: false,
+          error: error instanceof Error ? error.message : "Failed to save image",
+        })
       })
+
     return true
   }
 

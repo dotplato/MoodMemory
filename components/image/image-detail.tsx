@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ArrowSquareOutIcon,
+  CopyIcon,
+  DownloadSimpleIcon,
   PencilSimpleIcon,
   TrashIcon,
 } from "@phosphor-icons/react"
@@ -17,6 +19,10 @@ import {
   updateImageAction,
 } from "@/lib/actions"
 import { PreviewImage } from "@/components/image/preview-image"
+import { toast } from "@/components/ui/sonner"
+import { copyImageToClipboard } from "@/lib/utils/copy-image"
+import { LoadingOverlay } from "@/components/ui/loading-overlay"
+import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,7 +37,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { toast } from "@/components/ui/sonner"
+import { showProgressToast } from "@/lib/progress-toast"
 
 interface ImageDetailProps {
   image: ImageMetadata
@@ -46,15 +52,56 @@ export function ImageDetail({ image: initialImage }: ImageDetailProps) {
   const [notes, setNotes] = useState(image.notes)
   const [tags, setTags] = useState(image.tags.join(", "))
   const [collection, setCollection] = useState(image.collection)
+  const [copying, setCopying] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const previewUrl = `/api/images/${image.id}/preview`
 
   useEffect(() => {
     void getCollectionsAction().then(setCollections)
   }, [])
 
+  async function handleCopy() {
+    setCopying(true)
+    try {
+      await copyImageToClipboard(previewUrl)
+      toast.success("Image copied to clipboard")
+    } catch {
+      toast.error("Could not copy image")
+    } finally {
+      setCopying(false)
+    }
+  }
+
+  async function handleDownload() {
+    setDownloading(true)
+    try {
+      const response = await fetch(previewUrl, { credentials: "include" })
+      if (!response.ok) throw new Error("Failed to fetch image")
+
+      const blob = await response.blob()
+      const extension =
+        blob.type.split("/")[1]?.replace("svg+xml", "svg") ?? "jpg"
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = `${image.title || image.id}.${extension}`
+      anchor.click()
+      URL.revokeObjectURL(url)
+      toast.success("Download started")
+    } catch {
+      toast.error("Could not download image")
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   function handleSave() {
+    const progress = showProgressToast("Saving changes...")
+
     startTransition(async () => {
       try {
+        progress.update(55, "Updating image...")
         const updated = await updateImageAction(image.id, {
           title: title.trim(),
           notes: notes.trim(),
@@ -66,37 +113,60 @@ export function ImageDetail({ image: initialImage }: ImageDetailProps) {
         })
         setImage(updated)
         setEditing(false)
-        toast.success("Image updated")
+        progress.complete("Image updated")
         router.refresh()
       } catch {
-        toast.error("Failed to update image")
+        progress.error("Failed to update image")
       }
     })
   }
 
   function handleDelete() {
+    const progress = showProgressToast("Deleting image...")
+
     startTransition(async () => {
       try {
+        progress.update(60, "Removing from library...")
         await deleteImageAction(image.id)
-        toast.success("Image deleted")
+        progress.complete("Image deleted")
         router.push("/dashboard")
         router.refresh()
       } catch {
-        toast.error("Failed to delete image")
+        progress.error("Failed to delete image")
       }
     })
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 p-4 md:grid-cols-[1.2fr_0.8fr] md:p-8">
-      <div className="relative aspect-[4/5] overflow-hidden border bg-muted">
+    <div className="relative mx-auto grid max-w-6xl gap-8 p-4 md:grid-cols-[1.2fr_0.8fr] md:p-8">
+      <LoadingOverlay show={isPending} label="Processing..." />
+      <div className="group relative flex min-h-[420px] w-full items-center justify-center overflow-hidden border bg-muted">
         <PreviewImage
           imageId={image.id}
           alt={image.title || "Saved image"}
-          fill
-          className="object-contain"
+          className="max-h-[80vh] w-auto max-w-full object-contain"
           priority
         />
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/30 group-hover:opacity-100">
+          <ImageActionButton
+            label="Copy image"
+            onClick={() => void handleCopy()}
+            disabled={copying}
+          >
+            {copying ? <Spinner className="size-4" /> : <CopyIcon />}
+          </ImageActionButton>
+          <ImageActionButton
+            label="Download image"
+            onClick={() => void handleDownload()}
+            disabled={downloading}
+          >
+            {downloading ? (
+              <Spinner className="size-4" />
+            ) : (
+              <DownloadSimpleIcon />
+            )}
+          </ImageActionButton>
+        </div>
       </div>
 
       <div className="flex flex-col gap-6">
@@ -142,7 +212,14 @@ export function ImageDetail({ image: initialImage }: ImageDetailProps) {
                     onClick={handleDelete}
                     disabled={isPending}
                   >
-                    Delete
+                    {isPending ? (
+                      <>
+                        <Spinner data-icon="inline-start" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete"
+                    )}
                   </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -201,7 +278,14 @@ export function ImageDetail({ image: initialImage }: ImageDetailProps) {
               />
             </div>
             <Button onClick={handleSave} disabled={isPending}>
-              Save changes
+              {isPending ? (
+                <>
+                  <Spinner data-icon="inline-start" />
+                  Saving...
+                </>
+              ) : (
+                "Save changes"
+              )}
             </Button>
           </div>
         ) : (
@@ -243,5 +327,33 @@ export function ImageDetail({ image: initialImage }: ImageDetailProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+function ImageActionButton({
+  children,
+  label,
+  onClick,
+  disabled,
+}: {
+  children: React.ReactNode
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onClick()
+      }}
+      className="pointer-events-auto flex size-10 items-center justify-center bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-black/75 disabled:opacity-60"
+    >
+      {children}
+    </button>
   )
 }

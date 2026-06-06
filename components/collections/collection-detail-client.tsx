@@ -11,7 +11,9 @@ import {
 } from "@/lib/actions"
 import { MasonryGrid } from "@/components/dashboard/masonry-grid"
 import { EmptyState } from "@/components/dashboard/empty-states"
+import { LoadingOverlay } from "@/components/ui/loading-overlay"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 import {
   AlertDialog,
@@ -23,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { toast } from "@/components/ui/sonner"
+import { showProgressToast } from "@/lib/progress-toast"
 
 interface CollectionDetailClientProps {
   collection: Collection
@@ -45,30 +47,36 @@ export function CollectionDetailClient({
       return
     }
 
+    const progress = showProgressToast("Renaming collection...")
+
     startTransition(async () => {
       try {
+        progress.update(55, "Updating collection...")
         const updated = await updateCollectionAction(collection.slug, {
           name: name.trim(),
         })
-        toast.success("Collection renamed")
+        progress.complete("Collection renamed")
         setEditing(false)
         router.replace(`/collections/${updated.slug}`)
         router.refresh()
       } catch {
-        toast.error("Failed to rename collection")
+        progress.error("Failed to rename collection")
       }
     })
   }
 
   function handleDelete() {
+    const progress = showProgressToast("Deleting collection...")
+
     startTransition(async () => {
       try {
+        progress.update(58, "Updating library...")
         await deleteCollectionAction(collection.slug)
-        toast.success("Collection deleted")
+        progress.complete("Collection deleted")
         router.push("/collections")
         router.refresh()
       } catch (error) {
-        toast.error(
+        progress.error(
           error instanceof Error ? error.message : "Failed to delete collection"
         )
       }
@@ -76,7 +84,8 @@ export function CollectionDetailClient({
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
+    <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6">
+      <LoadingOverlay show={isPending} label="Processing..." />
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           {editing ? (

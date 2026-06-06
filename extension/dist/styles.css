@@ -75,3 +75,38 @@
 .moodmemory-toast--error {
   background: rgba(127, 29, 29, 0.94);
 }
+
+.moodmemory-toast--progress,
+.moodmemory-toast--success {
+  min-width: 240px;
+  padding: 14px 14px 12px;
+}
+
+.moodmemory-toast__message {
+  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.moodmemory-toast__track {
+  overflow: hidden;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.moodmemory-toast__bar {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: #fff;
+  transition: width 180ms ease;
+}
+
+.moodmemory-toast--success {
+  background: rgba(20, 83, 45, 0.94);
+}
+
+.moodmemory-toast--success .moodmemory-toast__bar {
+  background: #bbf7d0;
+}

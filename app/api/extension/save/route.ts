@@ -8,6 +8,7 @@ import {
 } from "@/lib/api/cors"
 import { createDriveService } from "@/lib/drive/service"
 import type { SaveImageInput } from "@/lib/types/image"
+import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 
 export async function OPTIONS() {
@@ -60,6 +61,8 @@ export async function POST(request: Request) {
       ...body,
       pageTitle: body.pageTitle || "Untitled",
     })
+    revalidatePath("/dashboard")
+    revalidatePath("/collections")
     return NextResponse.json(
       { success: true, image },
       { headers: extensionCorsHeaders() }

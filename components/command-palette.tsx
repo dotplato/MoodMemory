@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Spinner } from "@/components/ui/spinner"
 import {
   createCollectionAction,
   getCollectionsAction,
@@ -26,6 +27,7 @@ import {
 import type { Collection } from "@/lib/types/collection"
 import type { ImageListItem } from "@/lib/types/image"
 import { toast } from "@/components/ui/sonner"
+import { showProgressToast } from "@/lib/progress-toast"
 
 interface CommandPaletteProps {
   open: boolean
@@ -66,17 +68,20 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   async function handleCreateCollection() {
     if (!newCollectionName.trim()) return
 
+    const progress = showProgressToast("Creating collection...")
+
     try {
+      progress.update(58, "Saving to Google Drive...")
       const collection = await createCollectionAction({
         name: newCollectionName.trim(),
       })
-      toast.success(`Collection "${collection.name}" created`)
+      progress.complete(`Collection "${collection.name}" created`)
       setCreating(false)
       setNewCollectionName("")
       onOpenChange(false)
       router.push(`/collections/${collection.slug}`)
     } catch {
-      toast.error("Failed to create collection")
+      progress.error("Failed to create collection")
     }
   }
 
@@ -151,7 +156,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 Images
               </p>
               {isPending ? (
-                <p className="px-1 text-xs text-muted-foreground">Loading...</p>
+                <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+                  <Spinner />
+                  Searching...
+                </div>
               ) : images.length === 0 ? (
                 <p className="px-1 text-xs text-muted-foreground">
                   No matching images

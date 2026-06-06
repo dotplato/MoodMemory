@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { CheckCircleIcon, CopyIcon, PuzzlePieceIcon } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Card,
   CardContent,
@@ -15,9 +17,11 @@ import { toast } from "@/components/ui/sonner"
 export default function SettingsPage() {
   const [token, setToken] = useState<string | null>(null)
   const [connected, setConnected] = useState(false)
+  const [loadingToken, setLoadingToken] = useState(true)
 
   useEffect(() => {
     async function fetchToken() {
+      setLoadingToken(true)
       try {
         const response = await fetch("/api/extension/token")
         if (!response.ok) return
@@ -33,6 +37,8 @@ export default function SettingsPage() {
         )
       } catch {
         // Extension connect is optional
+      } finally {
+        setLoadingToken(false)
       }
     }
 
@@ -46,7 +52,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 p-4 md:p-8">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 p-4 md:p-8">
       <div>
         <h1 className="text-lg font-medium">Extension</h1>
         <p className="text-xs text-muted-foreground">
@@ -73,7 +79,16 @@ export default function SettingsPage() {
             <li>Visit this page while signed in to connect automatically.</li>
           </ol>
 
-          {token ? (
+          {loadingToken ? (
+            <div className="flex flex-col gap-3 border p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Spinner />
+                Preparing extension connection...
+              </div>
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-40" />
+            </div>
+          ) : token ? (
             <div className="flex flex-col gap-3 border p-4">
               <div className="flex items-center gap-2 text-xs">
                 <CheckCircleIcon className="text-primary" />
@@ -104,7 +119,11 @@ export default function SettingsPage() {
                 </p>
               ) : null}
             </div>
-          ) : null}
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Sign in to generate an extension connection token.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

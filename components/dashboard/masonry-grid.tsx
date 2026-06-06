@@ -1,42 +1,36 @@
 "use client"
 
-import Masonry from "react-masonry-css"
 import type { ImageListItem } from "@/lib/types/image"
+import type { Collection } from "@/lib/types/collection"
 import { ImageCard } from "@/components/dashboard/image-card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 interface MasonryGridProps {
   images: ImageListItem[]
-  loading?: boolean
+  collections?: Collection[]
+  onCollectionChange?: (imageId: string, collection: string) => void
+  className?: string
 }
 
-const breakpointColumns = {
-  default: 4,
-  1280: 3,
-  768: 2,
-  480: 1,
-}
+const gridClassName =
+  "grid w-full grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5"
 
-export function MasonryGrid({ images, loading }: MasonryGridProps) {
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <Skeleton key={index} className="aspect-[4/5] w-full" />
-        ))}
-      </div>
-    )
-  }
-
+export function MasonryGrid({
+  images,
+  collections = [],
+  onCollectionChange,
+  className,
+}: MasonryGridProps) {
   return (
-    <Masonry
-      breakpointCols={breakpointColumns}
-      className="-ml-4 flex w-auto"
-      columnClassName="flex flex-col gap-4 pl-4"
-    >
+    <div className={cn(gridClassName, className)}>
       {images.map((image) => (
-        <ImageCard key={image.id} image={image} />
+        <ImageCard
+          key={image.id}
+          image={image}
+          collections={collections}
+          onCollectionChange={onCollectionChange}
+        />
       ))}
-    </Masonry>
+    </div>
   )
 }
