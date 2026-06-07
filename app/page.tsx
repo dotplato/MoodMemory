@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { auth } from "@/lib/auth"
+import { MoodMemoryLogo } from "@/components/brand/moodmemory-logo"
 import { Button } from "@/components/ui/button"
 
 export default async function HomePage() {
@@ -8,12 +9,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-svh bg-background">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center bg-primary text-primary-foreground">
-            <span className="text-sm font-medium">M</span>
-          </div>
-          <span className="text-sm font-medium">MoodMemory</span>
-        </div>
+        <MoodMemoryLogo href="/" />
         <Button render={<Link href={session ? "/dashboard" : "/login"} />}>
           {session ? "Open library" : "Get started"}
         </Button>

@@ -13,6 +13,7 @@ import {
   SignOutIcon,
   SunIcon,
 } from "@phosphor-icons/react"
+import { MoodMemoryLogo } from "@/components/brand/moodmemory-logo"
 import { cn } from "@/lib/utils"
 import { useLibrarySearch } from "@/components/providers/library-search-provider"
 import { SearchBar } from "@/components/dashboard/search-bar"
@@ -77,15 +78,10 @@ export function AppHeader({ onOpenCommand }: AppHeaderProps) {
         })}
       </nav>
 
-      <Link
+      <MoodMemoryLogo
         href="/dashboard"
-        className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2"
-      >
-        <div className="flex size-7 items-center justify-center bg-primary text-primary-foreground">
-          <span className="text-xs font-medium">M</span>
-        </div>
-        <span className="hidden text-sm font-medium md:inline">MoodMemory</span>
-      </Link>
+        className="absolute left-1/2 -translate-x-1/2"
+      />
 
       <div className="ml-auto flex min-w-0 items-center gap-2">
         <div className="hidden w-44 md:block lg:w-56 xl:w-64">
