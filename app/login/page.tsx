@@ -13,7 +13,7 @@ import {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background p-6">
+    <div className="flex min-h-svh items-center justify-center bg-background p-6 light">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Sign in to MoodMemory</CardTitle>

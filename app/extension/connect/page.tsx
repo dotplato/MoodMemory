@@ -20,7 +20,7 @@ export default function ExtensionConnectPage() {
   }, [])
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center light">
       <CheckCircleIcon className="size-8" />
       <div>
         <h1 className="text-sm font-medium">Extension connected</h1>

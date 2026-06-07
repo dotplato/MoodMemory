@@ -25,7 +25,8 @@ async function saveToMoodMemory(payload) {
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(data.error ?? "Failed to save image");
+    const message = response.status === 401 ? data.error ?? "Extension session expired. Reconnect from MoodMemory settings." : data.error ?? "Failed to save image";
+    throw new Error(message);
   }
 }
 function sendProgressToTab(tabId, payload) {

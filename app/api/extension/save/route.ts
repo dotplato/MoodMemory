@@ -1,6 +1,6 @@
 import {
   getAuthenticatedDriveToken,
-  verifyExtensionToken,
+  getExtensionDriveAccessToken,
 } from "@/lib/auth-tokens"
 import {
   corsOptionsResponse,
@@ -24,15 +24,17 @@ export async function POST(request: Request) {
   let accessToken: string | null = null
 
   if (bearerToken) {
-    const verified = await verifyExtensionToken(bearerToken)
-    accessToken = verified?.accessToken ?? null
+    accessToken = await getExtensionDriveAccessToken(bearerToken)
   } else {
     accessToken = await getAuthenticatedDriveToken()
   }
 
   if (!accessToken) {
     return NextResponse.json(
-      { error: "Unauthorized" },
+      {
+        error:
+          "Extension session expired. Reconnect from MoodMemory settings or the extension popup.",
+      },
       { status: 401, headers: extensionCorsHeaders() }
     )
   }
